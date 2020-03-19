@@ -20,7 +20,7 @@ export function transpile() {
 		{
 			...ts.sys,
 			onUnRecoverableConfigFileDiagnostic(d) {
-				handleDiagnostics([d], compilerHost, parsedCommandLine);
+				handleDiagnostics([d], compilerHost, parsedConfig!.options);
 			},
 		}
 	);
@@ -28,25 +28,55 @@ export function transpile() {
 		console.error('Failed to parse config');
 		return ts.sys.exit(1);
 	}
-	const program = ttypescript.createProgram(
-		parsedConfig!.fileNames,
-		parsedConfig!.options,
-		compilerHost
-	);
-	const diagnostics = program.getSyntacticDiagnostics();
-	handleDiagnostics(diagnostics, compilerHost, parsedConfig);
+	if (parsedCommandLine.options.watch) {
+		const originalCreateBuilderProgram = ttypescript.createAbstractBuilder;
 
-	const result = program.emit();
-	handleDiagnostics(result.diagnostics, compilerHost, parsedConfig);
+		const createBuilderProgram = (...args) => {
+			const builderProgram = originalCreateBuilderProgram.apply(
+				ttypescript,
+				args as any
+			);
+			builderProgram.getSemanticDiagnostics = () => [];
+			return builderProgram;
+		};
+		const host = ttypescript.createWatchCompilerHost(
+			configFilePath,
+			parsedCommandLine.options,
+			ts.sys,
+			createBuilderProgram
+		);
+		ttypescript.createWatchProgram(host);
+	} else {
+		const program = ttypescript.createProgram(
+			parsedConfig!.fileNames,
+			parsedConfig!.options,
+			compilerHost
+		);
+		const diagnostics = program.getSyntacticDiagnostics();
+		handleDiagnostics(diagnostics, compilerHost, parsedConfig!.options);
+
+		const result = program.emit();
+		handleDiagnostics(
+			result.diagnostics,
+			compilerHost,
+			parsedConfig!.options
+		);
+	}
 }
 
 function handleDiagnostics(
 	diagnostics: ReadonlyArray<ts.Diagnostic>,
 	host: ts.CompilerHost,
-	config: ts.ParsedCommandLine
+	options: ts.CompilerOptions
 ) {
 	if (diagnostics.length) {
-		console.error(formatDiagnostics(diagnostics, host, config));
+		if (shouldBePretty(options)) {
+			console.error(
+				ts.formatDiagnosticsWithColorAndContext(diagnostics, host)
+			);
+		} else {
+			console.error(ts.formatDiagnostics(diagnostics, host));
+		}
 		ts.sys.exit(1);
 	}
 }
@@ -58,37 +88,5 @@ function shouldBePretty(options?: ts.CompilerOptions) {
 	return options.pretty;
 	function defaultIsPretty() {
 		return !!ts.sys.writeOutputIsTTY && ts.sys.writeOutputIsTTY();
-	}
-}
-
-function formatDiagnostics(
-	d: ReadonlyArray<ts.Diagnostic>,
-	host: ts.CompilerHost,
-	config: ts.ParsedCommandLine
-) {
-	if (shouldBePretty(config.options)) {
-		return ts.formatDiagnosticsWithColorAndContext(d, {
-			getCanonicalFileName(fileName) {
-				return host.getCanonicalFileName(fileName);
-			},
-			getCurrentDirectory() {
-				return host.getCurrentDirectory();
-			},
-			getNewLine() {
-				return host.getNewLine();
-			},
-		});
-	} else {
-		return ts.formatDiagnostics(d, {
-			getCanonicalFileName(fileName) {
-				return host.getCanonicalFileName(fileName);
-			},
-			getCurrentDirectory() {
-				return host.getCurrentDirectory();
-			},
-			getNewLine() {
-				return host.getNewLine();
-			},
-		});
 	}
 }

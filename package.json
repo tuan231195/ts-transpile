@@ -8,7 +8,7 @@
 		"dist"
 	],
 	"bin": {
-		"ts-transpile": "dist/cli"
+		"ts-transpile": "dist/cli.js"
 	},
 	"repository": {
 		"url": "git@github.com:vdtn359/ts-transpile.git"
