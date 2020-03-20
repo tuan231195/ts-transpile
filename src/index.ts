@@ -4,15 +4,18 @@ import ttypescript from 'ttypescript';
 export function transpile() {
 	const commandLine = ts.sys.args;
 	const parsedCommandLine = ts.parseCommandLine(commandLine);
-	const compilerHost = ts.createCompilerHost(parsedCommandLine.options);
+	const tempCompilerHost = ts.createCompilerHost({});
 	const configFilePath = ts.findConfigFile(
-		parsedCommandLine.options.project || compilerHost.getCurrentDirectory(),
-		compilerHost.fileExists
+		parsedCommandLine.options.project ||
+			tempCompilerHost.getCurrentDirectory(),
+		tempCompilerHost.fileExists
 	);
 	if (!configFilePath) {
 		console.error('Config file not found');
 		return ts.sys.exit(1);
 	}
+
+	let compilerHost: ts.CompilerHost = tempCompilerHost;
 
 	const parsedConfig = ts.getParsedCommandLineOfConfigFile(
 		configFilePath as string,
@@ -28,6 +31,15 @@ export function transpile() {
 		console.error('Failed to parse config');
 		return ts.sys.exit(1);
 	}
+	parsedConfig.options = {
+		...parsedConfig.options,
+		skipLibCheck: true,
+		noResolve: true,
+		types: [],
+		noLib: true,
+	};
+	compilerHost = ts.createCompilerHost(parsedConfig.options);
+
 	if (parsedCommandLine.options.watch) {
 		const originalCreateBuilderProgram = ttypescript.createAbstractBuilder;
 
@@ -37,11 +49,22 @@ export function transpile() {
 				args as any
 			);
 			builderProgram.getSemanticDiagnostics = () => [];
+			builderProgram.getGlobalDiagnostics = () => [];
+			const originalEmit = builderProgram.emit;
+			builderProgram.emit = (...args) => {
+				const result = originalEmit.apply(builderProgram, args);
+
+				return {
+					diagnostics: [],
+					emitSkipped: result.emitSkipped,
+					emittedFiles: result.emittedFiles,
+				};
+			};
 			return builderProgram;
 		};
 		const host = ttypescript.createWatchCompilerHost(
 			configFilePath,
-			parsedCommandLine.options,
+			parsedConfig.options,
 			ts.sys,
 			createBuilderProgram
 		);
@@ -55,12 +78,7 @@ export function transpile() {
 		const diagnostics = program.getSyntacticDiagnostics();
 		handleDiagnostics(diagnostics, compilerHost, parsedConfig!.options);
 
-		const result = program.emit();
-		handleDiagnostics(
-			result.diagnostics,
-			compilerHost,
-			parsedConfig!.options
-		);
+		program.emit();
 	}
 }
 
