@@ -38,47 +38,97 @@ export function transpile() {
 		types: [],
 		noLib: true,
 	};
-	compilerHost = ts.createCompilerHost(parsedConfig.options);
+	compilerHost = ttypescript.createCompilerHost(parsedConfig.options);
 
-	if (parsedCommandLine.options.watch) {
-		const originalCreateBuilderProgram = ttypescript.createAbstractBuilder;
-
-		const createBuilderProgram = (...args) => {
-			const builderProgram = originalCreateBuilderProgram.apply(
-				ttypescript,
-				args as any
-			);
-			builderProgram.getSemanticDiagnostics = () => [];
-			builderProgram.getGlobalDiagnostics = () => [];
-			const originalEmit = builderProgram.emit;
-			builderProgram.emit = (...args) => {
-				const result = originalEmit.apply(builderProgram, args);
-
-				return {
-					diagnostics: [],
-					emitSkipped: result.emitSkipped,
-					emittedFiles: result.emittedFiles,
-				};
-			};
-			return builderProgram;
-		};
-		const host = ttypescript.createWatchCompilerHost(
-			configFilePath,
-			parsedConfig.options,
-			ts.sys,
-			createBuilderProgram
-		);
-		ttypescript.createWatchProgram(host);
+	if (parsedCommandLine.options.build) {
+		build(configFilePath, parsedConfig);
 	} else {
-		const program = ttypescript.createProgram(
-			parsedConfig!.fileNames,
-			parsedConfig!.options,
+		compileProject(configFilePath, parsedConfig);
+	}
+}
+
+function build(configFilePath, config: ts.ParsedCommandLine) {
+	//todo
+}
+
+function compileProject(configFilePath, config: ts.ParsedCommandLine) {
+	if (config.options.watch) {
+		watchCompile(configFilePath, config);
+	} else {
+		compile(config);
+	}
+}
+
+function watchCompile(configFilePath, config: ts.ParsedCommandLine) {
+	const originalCreateBuilderProgram = ttypescript.createAbstractBuilder;
+
+	const createBuilderProgram = (...args) => {
+		const builderProgram = originalCreateBuilderProgram.apply(
+			ttypescript,
+			args as any
+		);
+		builderProgram.getSemanticDiagnostics = () => [];
+		builderProgram.getGlobalDiagnostics = () => [];
+		const originalEmit = builderProgram.emit;
+		builderProgram.emit = (...args) => {
+			const result = originalEmit.apply(builderProgram, args);
+
+			return {
+				diagnostics: [],
+				emitSkipped: result.emitSkipped,
+				emittedFiles: result.emittedFiles,
+			};
+		};
+		return builderProgram;
+	};
+	const host = ttypescript.createWatchCompilerHost(
+		configFilePath,
+		config.options,
+		ts.sys,
+		createBuilderProgram
+	);
+	ttypescript.createWatchProgram(host);
+}
+
+function compile(config: ts.ParsedCommandLine) {
+	const compilerHost = createCompilerHost(config);
+	const program = createProgram(config, compilerHost);
+	const diagnostics = [
+		...program.getSyntacticDiagnostics(),
+		...program.getOptionsDiagnostics(),
+		...program.getConfigFileParsingDiagnostics(),
+	];
+	handleDiagnostics(diagnostics, compilerHost, config.options);
+
+	program.emit();
+}
+
+function createCompilerHost(config: ts.ParsedCommandLine) {
+	if (config.options.incremental) {
+		return ts.createIncrementalCompilerHost(config.options);
+	} else {
+		return ts.createCompilerHost(config.options);
+	}
+}
+
+function createProgram(
+	config: ts.ParsedCommandLine,
+	compilerHost: ts.CompilerHost
+) {
+	if (config.options.incremental) {
+		return ttypescript.createIncrementalProgram({
+			rootNames: config.fileNames,
+			options: config.options,
+			host: compilerHost,
+			projectReferences: config.projectReferences,
+			configFileParsingDiagnostics: config.errors,
+		});
+	} else {
+		return ttypescript.createProgram(
+			config.fileNames,
+			config.options,
 			compilerHost
 		);
-		const diagnostics = program.getSyntacticDiagnostics();
-		handleDiagnostics(diagnostics, compilerHost, parsedConfig!.options);
-
-		program.emit();
 	}
 }
 
