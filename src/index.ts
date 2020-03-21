@@ -51,7 +51,7 @@ function buildProject(configFilePath, config: ts.ParsedCommandLine) {
 	}
 }
 
-function createLightWeightProgram() {
+function createLightWeightProgram(config) {
 	const originalCreateBuilderProgram =
 		ttypescript.createEmitAndSemanticDiagnosticsBuilderProgram;
 	return (...args) => {
@@ -60,6 +60,19 @@ function createLightWeightProgram() {
 			args as any
 		);
 		builderProgram.getSemanticDiagnostics = () => [];
+		if (config.options.noLib) {
+			builderProgram.getGlobalDiagnostics = () => [];
+			const originalEmit = builderProgram.emit;
+			builderProgram.emit = (...args) => {
+				const result = originalEmit.apply(builderProgram, args);
+
+				return {
+					diagnostics: [],
+					emitSkipped: result.emitSkipped,
+					emittedFiles: result.emittedFiles,
+				};
+			};
+		}
 		return builderProgram;
 	};
 }
@@ -67,7 +80,7 @@ function createLightWeightProgram() {
 function watchBuild(configFilePath, config: ts.ParsedCommandLine) {
 	const solutionBuilderHost = ttypescript.createSolutionBuilderWithWatchHost(
 		ts.sys,
-		createLightWeightProgram()
+		createLightWeightProgram(config)
 	);
 	const compilerHost = createCompilerHost(config);
 
@@ -88,7 +101,7 @@ function watchBuild(configFilePath, config: ts.ParsedCommandLine) {
 function build(configFilePath, config: ts.ParsedCommandLine) {
 	const solutionBuilderHost = ttypescript.createSolutionBuilderHost(
 		ts.sys,
-		createLightWeightProgram()
+		createLightWeightProgram(config)
 	);
 	const compilerHost = createCompilerHost(config);
 
@@ -119,7 +132,7 @@ function watchCompile(configFilePath, config: ts.ParsedCommandLine) {
 		configFilePath,
 		config.options,
 		ts.sys,
-		createLightWeightProgram()
+		createLightWeightProgram(config)
 	);
 	ttypescript.createWatchProgram(host);
 }
@@ -131,12 +144,14 @@ function compile(config: ts.ParsedCommandLine) {
 		...program.getSyntacticDiagnostics(),
 		...program.getOptionsDiagnostics(),
 		...program.getConfigFileParsingDiagnostics(),
-		...program.getGlobalDiagnostics(),
+		...(config.options.noLib ? [] : program.getGlobalDiagnostics()),
 	];
 	handleDiagnostics(diagnostics, compilerHost, config.options);
 
 	const result = program.emit();
-	handleDiagnostics(result.diagnostics, compilerHost, config.options);
+	if (!config.options.noLib) {
+		handleDiagnostics(result.diagnostics, compilerHost, config.options);
+	}
 }
 
 function createCompilerHost(config: ts.ParsedCommandLine) {
@@ -211,6 +226,16 @@ function getParsedConfig(configFilePath, extraOptions, compilerHost) {
 	}
 	for (const [key, value] of Object.entries(EXTRA_OPTIONS)) {
 		parsedConfig.options[key] = value;
+	}
+	if (
+		!(
+			parsedConfig.options.declaration ||
+			parsedConfig.options.emitDeclarationOnly ||
+			parsedConfig.options.composite
+		)
+	) {
+		parsedConfig.options.noLib = true;
+		parsedConfig.options.lib = undefined;
 	}
 	return parsedConfig;
 }
