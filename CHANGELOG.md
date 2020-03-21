@@ -1,3 +1,13 @@
+# [1.1.0](https://github.com/vdtn359/ts-transpile/compare/v1.0.0...v1.1.0) (2020-03-21)
+
+
+### Features
+
+* **compilation:** allow build location to be specified ([904eda4](https://github.com/vdtn359/ts-transpile/commit/904eda4899351de62d67e4676420f5399470b7f5))
+* **compilation:** implement typescript build solution ([d5fc9f0](https://github.com/vdtn359/ts-transpile/commit/d5fc9f0de73c48bf5b060e5f0ca7d9e7666ab3bd))
+* **compilation:** improve performance ([21ea630](https://github.com/vdtn359/ts-transpile/commit/21ea630c73d777996233ae13555237d77752d022))
+* **declaration:** use noLib when no declaration needed ([1d71ac0](https://github.com/vdtn359/ts-transpile/commit/1d71ac02b57f8f22b9d3e0807ff254abcef76df1))
+
 # 1.0.0 (2020-03-19)
 
 
