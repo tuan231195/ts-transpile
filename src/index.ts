@@ -1,5 +1,6 @@
 import * as ts from 'typescript';
 import ttypescript from 'ttypescript';
+import * as path from 'path';
 
 const EXTRA_OPTIONS: ts.CompilerOptions = {
 	skipLibCheck: true,
@@ -12,15 +13,18 @@ export function transpile() {
 	const commandLine = ts.sys.args;
 	const parsedCommandLine = ts.parseCommandLine(commandLine);
 	const tempCompilerHost = ts.createCompilerHost({});
-	const configFilePath = ts.findConfigFile(
-		parsedCommandLine.options.project ||
-			tempCompilerHost.getCurrentDirectory(),
+	const project = parsedCommandLine.options.build
+		? parsedCommandLine.fileNames && parsedCommandLine.fileNames[0]
+		: parsedCommandLine.options.project;
+	let configFilePath = ts.findConfigFile(
+		project || tempCompilerHost.getCurrentDirectory(),
 		tempCompilerHost.fileExists
 	);
 	if (!configFilePath) {
 		console.error('Config file not found');
 		return ts.sys.exit(1);
 	}
+	configFilePath = path.resolve(configFilePath);
 
 	const parsedConfig = getParsedConfig(
 		configFilePath,
