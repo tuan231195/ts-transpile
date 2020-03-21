@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/vdtn359/ts-transpile/compare/v1.2.0...v1.2.1) (2020-03-21)
+
+
+### Bug Fixes
+
+* **dependency:** make typescript a peer dependency ([22004af](https://github.com/vdtn359/ts-transpile/commit/22004afa19bc8c9b4740d4601059cbb4e574e833))
+
 # [1.2.0](https://github.com/vdtn359/ts-transpile/compare/v1.1.0...v1.2.0) (2020-03-21)
 
 
