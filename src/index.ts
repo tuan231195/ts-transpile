@@ -14,7 +14,7 @@ export function transpile() {
 	const parsedCommandLine = ts.parseCommandLine(commandLine);
 	const tempCompilerHost = ts.createCompilerHost({});
 	let parsedConfig: ts.ParsedCommandLine;
-	const configFilePath = null;
+	let configFilePath: string | null = null;
 	if (
 		parsedCommandLine.fileNames?.length &&
 		!parsedCommandLine.options.build
@@ -24,10 +24,10 @@ export function transpile() {
 		const project = parsedCommandLine.options.build
 			? parsedCommandLine.fileNames && parsedCommandLine.fileNames[0]
 			: parsedCommandLine.options.project;
-		let configFilePath = ts.findConfigFile(
+		configFilePath = ts.findConfigFile(
 			project || tempCompilerHost.getCurrentDirectory(),
 			tempCompilerHost.fileExists
-		);
+		) as any;
 		if (!configFilePath) {
 			console.error('Config file not found');
 			return ts.sys.exit(1);
