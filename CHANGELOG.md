@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/vdtn359/ts-transpile/compare/v1.1.0...v1.2.0) (2020-03-21)
+
+
+### Features
+
+* **compilation:** allow single files to be compiled ([dae6b25](https://github.com/vdtn359/ts-transpile/commit/dae6b25c4b3f1ff61da543a9e97d2c9c0deb63d4))
+
 # [1.1.0](https://github.com/vdtn359/ts-transpile/compare/v1.0.0...v1.1.0) (2020-03-21)
 
 
