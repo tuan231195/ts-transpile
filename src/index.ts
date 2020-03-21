@@ -13,37 +13,46 @@ export function transpile() {
 	const commandLine = ts.sys.args;
 	const parsedCommandLine = ts.parseCommandLine(commandLine);
 	const tempCompilerHost = ts.createCompilerHost({});
-	const project = parsedCommandLine.options.build
-		? parsedCommandLine.fileNames && parsedCommandLine.fileNames[0]
-		: parsedCommandLine.options.project;
-	let configFilePath = ts.findConfigFile(
-		project || tempCompilerHost.getCurrentDirectory(),
-		tempCompilerHost.fileExists
-	);
-	if (!configFilePath) {
-		console.error('Config file not found');
-		return ts.sys.exit(1);
+	let parsedConfig: ts.ParsedCommandLine;
+	const configFilePath = null;
+	if (
+		parsedCommandLine.fileNames?.length &&
+		!parsedCommandLine.options.build
+	) {
+		parsedConfig = updateConfig(parsedCommandLine);
+	} else {
+		const project = parsedCommandLine.options.build
+			? parsedCommandLine.fileNames && parsedCommandLine.fileNames[0]
+			: parsedCommandLine.options.project;
+		let configFilePath = ts.findConfigFile(
+			project || tempCompilerHost.getCurrentDirectory(),
+			tempCompilerHost.fileExists
+		);
+		if (!configFilePath) {
+			console.error('Config file not found');
+			return ts.sys.exit(1);
+		}
+		configFilePath = path.resolve(configFilePath);
+		parsedConfig = getParsedConfig(
+			configFilePath,
+			parsedCommandLine.options,
+			tempCompilerHost
+		) as any;
 	}
-	configFilePath = path.resolve(configFilePath);
 
-	const parsedConfig = getParsedConfig(
-		configFilePath,
-		parsedCommandLine.options,
-		tempCompilerHost
-	);
 	if (!parsedConfig) {
 		console.error('Failed to parse config');
 		return ts.sys.exit(1);
 	}
 
-	if (parsedCommandLine.options.build) {
+	if (parsedCommandLine.options.build && configFilePath) {
 		buildProject(configFilePath, parsedConfig);
 	} else {
 		compileProject(configFilePath, parsedConfig);
 	}
 }
 
-function buildProject(configFilePath, config: ts.ParsedCommandLine) {
+function buildProject(configFilePath: string, config: ts.ParsedCommandLine) {
 	if (config.options.watch) {
 		watchBuild(configFilePath, config);
 	} else {
@@ -119,7 +128,10 @@ function build(configFilePath, config: ts.ParsedCommandLine) {
 	solutionBuilder.build(configFilePath);
 }
 
-function compileProject(configFilePath, config: ts.ParsedCommandLine) {
+function compileProject(
+	configFilePath: string | null,
+	config: ts.ParsedCommandLine
+) {
 	if (config.options.watch) {
 		watchCompile(configFilePath, config);
 	} else {
@@ -129,7 +141,7 @@ function compileProject(configFilePath, config: ts.ParsedCommandLine) {
 
 function watchCompile(configFilePath, config: ts.ParsedCommandLine) {
 	const host = ttypescript.createWatchCompilerHost(
-		configFilePath,
+		configFilePath ? configFilePath : config.fileNames,
 		config.options,
 		ts.sys,
 		createLightWeightProgram(config)
@@ -224,18 +236,23 @@ function getParsedConfig(configFilePath, extraOptions, compilerHost) {
 	if (!parsedConfig) {
 		return parsedConfig;
 	}
+
+	return updateConfig(parsedConfig);
+}
+
+function updateConfig(config: ts.ParsedCommandLine) {
 	for (const [key, value] of Object.entries(EXTRA_OPTIONS)) {
-		parsedConfig.options[key] = value;
+		config.options[key] = value;
 	}
 	if (
 		!(
-			parsedConfig.options.declaration ||
-			parsedConfig.options.emitDeclarationOnly ||
-			parsedConfig.options.composite
+			config.options.declaration ||
+			config.options.emitDeclarationOnly ||
+			config.options.composite
 		)
 	) {
-		parsedConfig.options.noLib = true;
-		parsedConfig.options.lib = undefined;
+		config.options.noLib = true;
+		config.options.lib = undefined;
 	}
-	return parsedConfig;
+	return config;
 }
