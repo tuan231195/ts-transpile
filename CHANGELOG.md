@@ -1,3 +1,10 @@
+## [1.2.2](https://github.com/vdtn359/ts-transpile/compare/v1.2.1...v1.2.2) (2020-03-21)
+
+
+### Bug Fixes
+
+* **compilation:** fix build argument ([eebf8bb](https://github.com/vdtn359/ts-transpile/commit/eebf8bb1f40d90555f5972ca2ca5372baf768ecf))
+
 ## [1.2.1](https://github.com/vdtn359/ts-transpile/compare/v1.2.0...v1.2.1) (2020-03-21)
 
 
