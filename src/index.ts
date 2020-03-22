@@ -102,6 +102,7 @@ function watchBuild(configFilePath, config: ts.ParsedCommandLine) {
 		[configFilePath],
 		{
 			incremental: config.options.incremental,
+			preserveWatchOutput: true,
 		}
 	);
 	solutionBuilderWatch.build(configFilePath);
