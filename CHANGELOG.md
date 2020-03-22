@@ -1,3 +1,10 @@
+## [1.2.3](https://github.com/vdtn359/ts-transpile/compare/v1.2.2...v1.2.3) (2020-03-22)
+
+
+### Bug Fixes
+
+* **watch:** preserve watch output ([e056628](https://github.com/vdtn359/ts-transpile/commit/e0566285a2de27387837ffd9a26c9d28dfdcfe5d))
+
 ## [1.2.2](https://github.com/vdtn359/ts-transpile/compare/v1.2.1...v1.2.2) (2020-03-21)
 
 
