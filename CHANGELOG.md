@@ -1,3 +1,10 @@
+## [1.2.4](https://github.com/vdtn359/ts-transpile/compare/v1.2.3...v1.2.4) (2020-03-25)
+
+
+### Bug Fixes
+
+* **config:** fix undefined parsed config ([95fab74](https://github.com/vdtn359/ts-transpile/commit/95fab7466d7ffe78e1823da240b2a62387458dbe))
+
 ## [1.2.3](https://github.com/vdtn359/ts-transpile/compare/v1.2.2...v1.2.3) (2020-03-22)
 
 
