@@ -230,7 +230,7 @@ function getParsedConfig(configFilePath, extraOptions, compilerHost) {
 		{
 			...ts.sys,
 			onUnRecoverableConfigFileDiagnostic(d) {
-				handleDiagnostics([d], compilerHost, parsedConfig!.options);
+				handleDiagnostics([d], compilerHost, extraOptions);
 			},
 		}
 	);
